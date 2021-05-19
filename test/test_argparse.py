@@ -25,8 +25,6 @@ import unittest
 import os.path
 import sys
 
-import extern
-
 sys.path = [os.path.join(os.path.dirname(os.path.realpath(__file__)),'..')]+sys.path
 
 import bird_tool_utils
