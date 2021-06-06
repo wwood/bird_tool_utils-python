@@ -72,6 +72,7 @@ class BirdArgparser:
           the people.py in this package [default []]
         * examples: Dict of subcommand name to list of ExampleUsage objects
           [default: {}]
+        * raw_format: Use raw ROFF output for --full-help [default False]
         '''
         # Required
         self.program = kwargs.pop('program')
@@ -82,6 +83,7 @@ class BirdArgparser:
         self.version = kwargs.pop('version', 'dev')
         self.authors = kwargs.pop('authors', [])
         self.examples = kwargs.pop('examples', {})
+        self.raw_format = kwargs.pop('raw_format', False)
 
         if len(kwargs) > 0:
             raise Exception("Unexpected arguments detected: %s" % kwargs)
@@ -152,7 +154,7 @@ class BirdArgparser:
 
                     subcommand = sys.argv[1]
                     subparser = self._subparser_name_to_parser[subcommand]
-                    print(str(Manpage(subparser)))
+                    print(str(self._manpage(subparser)))
                     sys.exit(0)
 
             # No need for an 'else' here since the above stanzas run sys.exit()
@@ -199,9 +201,12 @@ class BirdArgparser:
         with tempfile.NamedTemporaryFile(
             prefix='{}-manpage-'.format(subcommand)) as f:
 
-            f.write(str(Manpage(subparser, authors=self.authors)).encode())
+            f.write(str(self._manpage(subparser)).encode())
             f.flush()
             subprocess.run('man {}'.format(f.name), shell=True)
+
+    def _manpage(self, parser):
+        return Manpage(parser, authors=self.authors, raw_format=self.raw_format)
 
 class Example:
     def __init__(self, description, invocation):

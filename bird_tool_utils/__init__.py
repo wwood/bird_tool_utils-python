@@ -25,3 +25,30 @@ def in_tempdir():
     with tempfile.TemporaryDirectory() as tmpdirname:
         with in_working_directory(tmpdirname):
             yield
+
+
+def table_roff(table):
+    roff = "\n.TS\ntab(@);\n"
+    for row in table:
+        for col in row:
+            roff += 'l '
+        break
+    roff += '.\n'
+
+    first_row = True
+    for row in table:
+        first_column = True
+        for cell in row:
+            if first_column:
+                first_column = False
+            else:
+                roff += '@'
+            roff += 'T{\n'
+            roff += cell
+            roff += '\nT}'
+        roff += '\n'
+        if first_row:
+            first_row = False
+            roff += "_\n"
+    roff += '.TE\n'
+    return roff
