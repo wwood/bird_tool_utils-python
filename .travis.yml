@@ -31,8 +31,10 @@ install:
   # Replace dep1 dep2 ... with your dependencies
   - conda create -q -p /tmp/test-environment python
   - conda activate /tmp/test-environment
+
+  - pip install argparse-manpage-birdtools
   
-  # - python setup.py install
+  - python setup.py install
 
 script:
   - nosetests -v
