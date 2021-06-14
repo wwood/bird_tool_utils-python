@@ -29,10 +29,8 @@ install:
   - conda config --add channels conda-forge
 
   # Replace dep1 dep2 ... with your dependencies
-  - conda create -q -p /tmp/test-environment python
+  - conda create -q -p /tmp/test-environment python argparse-manpage-birdtools nose
   - conda activate /tmp/test-environment
-
-  - pip install argparse-manpage-birdtools
   
   - python setup.py install
 
