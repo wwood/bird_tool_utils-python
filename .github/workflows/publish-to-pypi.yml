@@ -1,7 +1,7 @@
 name: Publish to PyPI
 on: [release]
 jobs:
-    Publish-to-PyPI:
+  Publish-to-PyPI:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v2
