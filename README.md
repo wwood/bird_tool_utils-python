@@ -12,3 +12,4 @@ Current utilities:
 * `BirdArgparser` - opinionated way of presenting help messages - default help prints examples with colour, `--full-help` shows a man page. `--full-help-roff` can be used to generate HTML versions. Logging arguments are batteries included.
 * `table_roff` for generating ROFF format tables for use with `BirdArgparser`
 * `in_working_directory` and `in_tempdir` are context functions for temporary switching to a directory
+* `iterable_chunks` provides chunking for iterables

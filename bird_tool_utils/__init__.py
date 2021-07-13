@@ -2,6 +2,7 @@ import os
 import contextlib
 from pathlib import Path
 import tempfile
+import itertools
 
 from .argparsing import *
 
@@ -92,3 +93,10 @@ class SeqReader:
         '''Generator function for reading FASTA files'''
         for (name, seq, _) in self.readfq(fp):
             yield name, seq
+
+def iterable_chunks(iterable, n):
+    '''Given an iterable, return it in chunks of size n. In the last chunk, the
+    remaining space is replaced by None entries.
+    '''
+    args = [iter(iterable)] * n
+    return itertools.zip_longest(*args, fillvalue=None)
