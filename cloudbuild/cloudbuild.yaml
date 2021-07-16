@@ -1,8 +1,8 @@
 steps:
 - name: python
   entrypoint: 'bash'
-  args: ['-c', 'python3 -m pip install --upgrade build setuptools twine wheel && python3 -m build && echo $$pypi-api-token && python3 -m twine upload -u $$_TWINE_USERNAME -r $$_TWINE_REPOSITORY_URL -p $$pypi-api-token dist/*']
-  secretEnv: ['pypi-api-token']
+  args: ['-c', 'python3 -m pip install --upgrade build setuptools twine wheel && python3 -m build && echo $$pypi_api_token && python3 -m twine upload -u $_TWINE_USERNAME -r $_TWINE_REPOSITORY_URL -p $$pypi_api_token dist/*']
+  secretEnv: ['pypi_api_token']
   env:
   - 'TWINE_USERNAME=${_TWINE_USERNAME}'
   - 'TWINE_REPOSITORY_URL=${_TWINE_REPOSITORY_URL}'
@@ -14,4 +14,4 @@ options:
 availableSecrets:
   secretManager:
   - versionName: projects/maximal-dynamo-308105/secrets/wwood-bird-tool-utils-pypi-api-token/versions/1
-    env: 'pypi-api-token'
+    env: 'pypi_api_token'
