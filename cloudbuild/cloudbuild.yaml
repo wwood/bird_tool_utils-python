@@ -1,14 +1,23 @@
 steps:
-- id: release
-  name: python
-  args: ['bash', './cloudbuild/release_pypi.sh']
+- name: python
+  entrypoint: 'bash'
+  args: ['-c', 'python3 -m pip install --upgrade build setuptools twine wheel']
+- name: python
+  entrypoint: 'bash'
+  args: ['-c', 'python3 -m build']
+- name: python
+  entrypoint: 'bash'
+  args: ['-c', 'python3 -m twine upload -u $_TWINE_USERNAME -r $_TWINE_REPOSITORY_URL -p $$pypi-api-token dist/*']
+  secretEnv: ['pypi-api-token']
   env:
   - 'TWINE_USERNAME=${_TWINE_USERNAME}'
-  - 'TWINE_PASSWORD=${_TWINE_PASSWORD}'
   - 'TWINE_REPOSITORY_URL=${_TWINE_REPOSITORY_URL}'
 substitutions:
   _TWINE_USERNAME: __token__
-  _TWINE_PASSWORD: null
   _TWINE_REPOSITORY_URL: https://upload.pypi.org/legacy/
 options:
   substitution_option: 'ALLOW_LOOSE'
+availableSecrets:
+  secretManager:
+  - versionName: projects/maximal-dynamo-308105/secrets/wwood-bird-tool-utils-pypi-api-token/versions/latest
+    env: 'pypi-api-token'
