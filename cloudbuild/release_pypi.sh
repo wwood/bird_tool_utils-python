@@ -5,4 +5,4 @@ fi
 
 python3 -m pip install --upgrade build setuptools twine wheel
 python3 -m build
-python3 -m twine upload dist/*<Paste>
+python3 -m twine upload dist/*
