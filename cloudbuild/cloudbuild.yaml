@@ -1,7 +1,7 @@
 steps:
 - id: release
   name: python
-  args: ['bash', './ci/release_pypi.sh']
+  args: ['bash', './cloudbuild/release_pypi.sh']
   env:
   - 'TWINE_USERNAME=${_TWINE_USERNAME}'
   - 'TWINE_PASSWORD=${_TWINE_PASSWORD}'
