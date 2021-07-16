@@ -1,0 +1,16 @@
+timeout: 7200s
+steps:
+- id: release
+  name: 'gcr.io/pso-kokoro-resources/python-multi'
+  args: ['bash', './ci/release_pypi.sh']
+  env:
+  - 'BUILD=$BUILD_ID'
+  - 'TWINE_USERNAME=${_TWINE_USERNAME}'
+  - 'TWINE_PASSWORD=${_TWINE_PASSWORD}'
+  - 'TWINE_REPOSITORY_URL=${_TWINE_REPOSITORY_URL}'
+substitutions:
+  _TWINE_USERNAME: __token__
+  _TWINE_PASSWORD:
+  _TWINE_REPOSITORY_URL: https://upload.pypi.org/legacy/
+options:
+  substitution_option: 'ALLOW_LOOSE'<Paste>
