@@ -11,4 +11,4 @@ substitutions:
   _TWINE_PASSWORD: null
   _TWINE_REPOSITORY_URL: https://upload.pypi.org/legacy/
 options:
-  substitution_option: 'ALLOW_LOOSE'<Paste>
+  substitution_option: 'ALLOW_LOOSE'
