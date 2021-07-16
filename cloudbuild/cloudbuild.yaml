@@ -1,8 +1,8 @@
 steps:
 - name: python
   entrypoint: 'bash'
-  args: ['-c', 'python3 -m pip install --upgrade build setuptools twine wheel\
-               && python3 -m build\ 
+  args: ['-c', 'python3 -m pip install --upgrade build setuptools twine wheel
+               && python3 -m build
                && python3 -m twine upload -u $_TWINE_USERNAME -r $_TWINE_REPOSITORY_URL -p $$pypi_api_token dist/*']
   secretEnv: ['pypi_api_token']
   env:
