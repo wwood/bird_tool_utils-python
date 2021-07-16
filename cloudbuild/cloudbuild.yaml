@@ -1,6 +1,6 @@
 steps:
 - id: release
-  name: 'gcr.io/pso-kokoro-resources/python-multi'
+  name: python
   args: ['bash', './ci/release_pypi.sh']
   env:
   - 'TWINE_USERNAME=${_TWINE_USERNAME}'
