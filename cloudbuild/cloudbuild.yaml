@@ -13,5 +13,5 @@ options:
   substitution_option: 'ALLOW_LOOSE'
 availableSecrets:
   secretManager:
-  - versionName: projects/maximal-dynamo-308105/secrets/wwood-bird-tool-utils-pypi-api-token/versions/latest
+  - versionName: projects/maximal-dynamo-308105/secrets/wwood-bird-tool-utils-pypi-api-token/versions/1
     env: 'pypi-api-token'
