@@ -194,7 +194,7 @@ class BirdArgparser:
             print('\nSee %s %s --%s for further options and further detail.\n' % (
                 self.program_invocation, subcommand, BirdArgparser.FULL_HELP_FLAG))
         else:
-            self._print_long_help(subcommand)
+            self._print_full_help(subcommand)
 
     def _print_full_help(self, subcommand):
         subparser = self._subparser_name_to_parser[subcommand]
