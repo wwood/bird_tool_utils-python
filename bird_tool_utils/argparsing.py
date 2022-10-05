@@ -5,6 +5,7 @@ import logging
 import tempfile
 import subprocess
 import textwrap
+from typing import OrderedDict
 
 from build_manpages.manpage import Manpage
 
@@ -92,10 +93,19 @@ class BirdArgparser:
         self._child_parser = argparse.ArgumentParser(parents=[self.parser])
         self._subparser_name_to_parser = {}
         self._subparser_name_to_description = {}
+        self._groups_of_subparsers = OrderedDict()
 
-    def new_subparser(self, parser_name, parser_description):
+    def new_subparser(self, parser_name, parser_description, parser_group=None):
         '''Create a new subparser, and return it. Keep track of all subparsers
-        so that they can be referred to with --full-help'''
+        so that they can be referred to with --full-help.
+
+        Required:
+        * parser_name: name of subcommand
+        * parser_description: description of subcommand
+
+        Optional:
+        * parser_group: str or None. Define grouping of subcommands [default: None]
+        '''
         if len(self._subparser_name_to_parser) == 0:
             self._subparsers = self._child_parser.add_subparsers(
                 title="Sub-commands", dest='subparser_name')
@@ -106,6 +116,10 @@ class BirdArgparser:
                                        parents=[self.parser])
         self._subparser_name_to_parser[parser_name] = subpar
         self._subparser_name_to_description[parser_name] = parser_description
+        if parser_group is not None:
+            if parser_group not in self._groups_of_subparsers:
+                self._groups_of_subparsers[parser_group] = []
+            self._groups_of_subparsers[parser_group].append(parser_name)
         return subpar
 
     def _add_boring_common_arguments(self, parser=None):
@@ -131,9 +145,25 @@ class BirdArgparser:
             print('                ...::: '+self.program+' v' + self.version + ' :::...''')
             print('')
             max_name_length = max([len(name) for name, _ in self._subparser_name_to_description.items()])
-            for name, description in self._subparser_name_to_description.items():
-                format_string = '  %-{}s  -> {}'.format(max_name_length+2, description)
-                print(format_string % name)
+
+            # Print by group if any grouping is defined
+            printed_parsers = set()
+            for group_name, parser_names in self._groups_of_subparsers.items():
+                print(group_name+':')
+                for parser_name in parser_names:
+                    format_string = '  %-{}s  -> {}'.format(max_name_length+2, self._subparser_name_to_description[parser_name])
+                    print(format_string % parser_name)
+                    printed_parsers.add(parser_name)
+                print('')
+
+            # Print any remaining parsers
+            leftover_parsers = [name for name in self._subparser_name_to_description.keys() if name not in printed_parsers]
+            if len(leftover_parsers) > 0:
+                if len(self._groups_of_subparsers) > 0: print('Other commands:')
+                for name, description in self._subparser_name_to_description.items():
+                    if name in printed_parsers: continue
+                    format_string = '  %-{}s  -> {}'.format(max_name_length+2, description)
+                    print(format_string % name)
 
             print('\n  Use '+self.program_invocation+' <command> -h for command-specific help.\n'\
                 '  Some commands also have an extended --full-help flag.\n')
