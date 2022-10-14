@@ -37,7 +37,7 @@ setup(
     data_files=[(".", ["README.md", "LICENCE.txt"])],
     include_package_data=True,
     install_requires=(
-      'argparse-manpage-birdtools >= 1.6'
+      'argparse-manpage-birdtools >= 1.7.0'
     ),
     setup_requires=['nose >= 1.0'],
     test_suite='nose.collector',
