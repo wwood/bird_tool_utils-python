@@ -13,7 +13,8 @@ dependencies:
   - aria2>=1.36.0
   - sracat
   - nose # For testing only
-  - bird_tool_utils_python
   - awscli
   - pyarrow
   - tqdm
+  - pip:
+    - argparse-manpage-birdtools '>=' 1.7.0 # Not yet on conda-forge

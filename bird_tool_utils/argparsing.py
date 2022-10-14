@@ -184,7 +184,7 @@ class BirdArgparser:
 
                     subcommand = sys.argv[1]
                     subparser = self._subparser_name_to_parser[subcommand]
-                    print(str(self._manpage(subparser)))
+                    print(str(self._manpage(subparser, subcommand)))
                     sys.exit(0)
 
             # No need for an 'else' here since the above stanzas run sys.exit()
@@ -231,11 +231,33 @@ class BirdArgparser:
         with tempfile.NamedTemporaryFile(
             prefix='{}-manpage-'.format(subcommand)) as f:
 
-            f.write(str(self._manpage(subparser)).encode())
+            f.write(str(self._manpage(subparser, subcommand)).encode())
             f.flush()
             subprocess.run('man {}'.format(f.name), shell=True)
 
-    def _manpage(self, parser):
+    def _manpage(self, parser, subcommand):
+        # Gather examples if possible
+        if subcommand in self.examples:
+            examples = self.examples[subcommand]
+            # .TP
+            # Calculate mean coverage from reads and assembly
+            # \fB$ coverm contig \-\-coupled read1.fastq.gz read2.fastq.gz \-\-reference assembly.fna\fR
+            # .TP
+            # Calculate MetaBAT adjusted coverage from a sorted BAM file, saving the unfiltered BAM files in the saved_bam_files folder
+            # \fB$ coverm contig \-\-method metabat \-\-bam\-files my.bam \-\-bam\-file\-cache\-directory saved_bam_files\fR
+
+            example_text = ''
+            for example in examples:
+                example_text += '.TP\n'
+                example_text += example.description + '\n'
+                example_text += '\\fB$ ' + example.invocation + '\\fR\n'
+
+            section = {
+                'heading': 'EXAMPLES',
+                'content': example_text,
+            }
+            parser._manpage = [section]
+
         return Manpage(parser, authors=self.authors, raw_format=self.raw_format)
 
 class Example:
