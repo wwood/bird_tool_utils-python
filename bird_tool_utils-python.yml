@@ -16,5 +16,6 @@ dependencies:
   - awscli
   - pyarrow
   - tqdm
+  - pip
   - pip:
-    - argparse-manpage-birdtools '>=' 1.7.0 # Not yet on conda-forge
+    - argparse-manpage-birdtools>=1.7.0 # Not yet on conda-forge
