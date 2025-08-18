@@ -9,7 +9,7 @@ UI. They may change without warning.
 Current utilities:
 
 * `SeqReader().readf[aq]` - pure python generator function for reading FASTA / FASTQ files
-* `BirdArgparser` - opinionated way of presenting help messages - default help prints examples with colour, `--full-help` shows a man page. `--full-help-roff` can be used to generate HTML versions. Logging arguments are batteries included.
+* `BirdArgparser` - opinionated way of presenting help messages - default help prints examples with colour, `--full-help` shows a man page. `--full-help-roff` can be used to generate HTML versions. Logging arguments are batteries included. Subcommands that should run without additional arguments can be created with `allow_no_args=True`.
 * `table_roff` for generating ROFF format tables for use with `BirdArgparser`
 * `in_working_directory` and `in_tempdir` are context functions for temporary switching to a directory
 * `iterable_chunks` provides chunking for iterables

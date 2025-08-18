@@ -37,6 +37,28 @@ class Tests(unittest.TestCase):
     def test_str2bool(self):
         self.assertEqual(True, str2bool('y'))
         self.assertEqual(False, str2bool('false'))
+
+    def test_allow_no_args_subparser(self):
+        saved = sys.argv
+        parser = BirdArgparser(program='TestProgram', program_invocation='testprog')
+        parser.new_subparser('build', 'desc', allow_no_args=True)
+        sys.argv = ['testprog', 'build']
+        try:
+            args = parser.parse_the_args()
+            self.assertFalse(args.debug)
+        finally:
+            sys.argv = saved
+
+    def test_default_requires_args(self):
+        saved = sys.argv
+        parser = BirdArgparser(program='TestProgram', program_invocation='testprog')
+        parser.new_subparser('build', 'desc')
+        sys.argv = ['testprog', 'build']
+        try:
+            with self.assertRaises(SystemExit):
+                parser.parse_the_args()
+        finally:
+            sys.argv = saved
         
 if __name__ == "__main__":
     unittest.main()
