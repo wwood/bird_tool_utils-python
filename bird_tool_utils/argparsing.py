@@ -94,8 +94,10 @@ class BirdArgparser:
         self._subparser_name_to_parser = {}
         self._subparser_name_to_description = {}
         self._groups_of_subparsers = OrderedDict()
+        self._subparsers_allow_no_args = set()
 
-    def new_subparser(self, parser_name, parser_description, parser_group=None):
+    def new_subparser(self, parser_name, parser_description, parser_group=None,
+                      allow_no_args=False):
         '''Create a new subparser, and return it. Keep track of all subparsers
         so that they can be referred to with --full-help.
 
@@ -105,6 +107,8 @@ class BirdArgparser:
 
         Optional:
         * parser_group: str or None. Define grouping of subcommands [default: None]
+        * allow_no_args: allow subcommand execution with no further
+          arguments, rather than printing help [default: False]
         '''
         if len(self._subparser_name_to_parser) == 0:
             self._subparsers = self._child_parser.add_subparsers(
@@ -120,6 +124,8 @@ class BirdArgparser:
             if parser_group not in self._groups_of_subparsers:
                 self._groups_of_subparsers[parser_group] = []
             self._groups_of_subparsers[parser_group].append(parser_name)
+        if allow_no_args:
+            self._subparsers_allow_no_args.add(parser_name)
         return subpar
 
     def _add_boring_common_arguments(self, parser=None):
@@ -172,7 +178,8 @@ class BirdArgparser:
             # Determine whether help was specified before argument parsing.
             print_help = True
             if sys.argv[1] in self._subparser_name_to_parser:
-                if '-h' in sys.argv or '--help' in sys.argv or len(sys.argv) == 2:
+                if '-h' in sys.argv or '--help' in sys.argv or \
+                   (len(sys.argv) == 2 and sys.argv[1] not in self._subparsers_allow_no_args):
                     self._print_short_help(sys.argv[1])
                     sys.exit(0)
                 elif '--%s' % BirdArgparser.FULL_HELP_FLAG in sys.argv or \
