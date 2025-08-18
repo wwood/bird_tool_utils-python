@@ -1,0 +1,16 @@
+[project]
+name = "bird_tool_utils"
+channels = ["conda-forge"]
+platforms = ["linux-64"]
+
+[dependencies]
+python = ">=3.9"
+
+[pypi-dependencies]
+argparse-manpage-birdtools = ">=1.7.0"
+
+[feature.dev.dependencies]
+pytest = "*"
+
+[environments]
+dev = { features = ["dev"] }
