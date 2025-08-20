@@ -1,0 +1,39 @@
+[build-system]
+requires = ["setuptools>=64", "wheel", "setuptools_scm"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "bird_tool_utils"
+description = "Python utilities used as part of the bird suite of bioinformatic tools"
+readme = "README.md"
+requires-python = ">=3.7"
+license = "GPL-3.0-or-later"
+authors = [
+    { name = "Ben Woodcroft", email = "benjwoodcroft@gmail.com" },
+    { name = "Rhys Newell", email = "rhys.newell@hdr.qut.edu.au" }
+]
+maintainers = [{ name = "Ben Woodcroft", email = "benjwoodcroft@gmail.com" }]
+keywords = ["bioinformatics"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Topic :: Scientific/Engineering",
+    "Topic :: Scientific/Engineering :: Bio-Informatics",
+    "Programming Language :: Python :: 3"
+]
+dependencies = ["argparse-manpage-birdtools >= 1.7.0"]
+dynamic = ["version"]
+
+[project.urls]
+Homepage = "https://github.com/wwood/bird_tool_utils-python/"
+
+[tool.setuptools]
+packages = ["bird_tool_utils"]
+include-package-data = true
+
+[tool.setuptools.package-data]
+bird_tool_utils = ["*"]
+
+[tool.setuptools_scm]
+version_file = "bird_tool_utils/version.py"
+version_scheme = "only-version"
+local_scheme = "no-local-version"
