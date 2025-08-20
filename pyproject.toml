@@ -28,10 +28,6 @@ Homepage = "https://github.com/wwood/bird_tool_utils-python/"
 
 [tool.setuptools]
 packages = ["bird_tool_utils"]
-include-package-data = true
-
-[tool.setuptools.package-data]
-bird_tool_utils = ["*"]
 
 [tool.setuptools_scm]
 version_file = "bird_tool_utils/version.py"
