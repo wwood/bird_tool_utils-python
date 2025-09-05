@@ -24,6 +24,8 @@
 import unittest
 import os.path
 import sys
+import io
+import contextlib
 
 sys.path = [os.path.join(os.path.dirname(os.path.realpath(__file__)),'..')]+sys.path
 
@@ -57,6 +59,23 @@ class Tests(unittest.TestCase):
         try:
             with self.assertRaises(SystemExit):
                 parser.parse_the_args()
+        finally:
+            sys.argv = saved
+
+    def test_exclude_group_not_in_help(self):
+        saved = sys.argv
+        parser = BirdArgparser(program='TestProgram', program_invocation='testprog')
+        parser.new_subparser('hidden', 'hidden desc', parser_group='exclude')
+        parser.new_subparser('shown', 'shown desc')
+        sys.argv = ['testprog', '-h']
+        try:
+            buf = io.StringIO()
+            with contextlib.redirect_stdout(buf):
+                with self.assertRaises(SystemExit):
+                    parser.parse_the_args()
+            output = buf.getvalue()
+            self.assertNotIn('hidden', output)
+            self.assertIn('shown', output)
         finally:
             sys.argv = saved
         

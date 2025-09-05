@@ -95,6 +95,7 @@ class BirdArgparser:
         self._subparser_name_to_description = {}
         self._groups_of_subparsers = OrderedDict()
         self._subparsers_allow_no_args = set()
+        self._excluded_subparsers = set()
 
     def new_subparser(self, parser_name, parser_description, parser_group=None,
                       allow_no_args=False):
@@ -121,9 +122,12 @@ class BirdArgparser:
         self._subparser_name_to_parser[parser_name] = subpar
         self._subparser_name_to_description[parser_name] = parser_description
         if parser_group is not None:
-            if parser_group not in self._groups_of_subparsers:
-                self._groups_of_subparsers[parser_group] = []
-            self._groups_of_subparsers[parser_group].append(parser_name)
+            if parser_group == 'exclude':
+                self._excluded_subparsers.add(parser_name)
+            else:
+                if parser_group not in self._groups_of_subparsers:
+                    self._groups_of_subparsers[parser_group] = []
+                self._groups_of_subparsers[parser_group].append(parser_name)
         if allow_no_args:
             self._subparsers_allow_no_args.add(parser_name)
         return subpar
@@ -150,7 +154,9 @@ class BirdArgparser:
             print('')
             print('                ...::: '+self.program+' v' + self.version + ' :::...''')
             print('')
-            max_name_length = max([len(name) for name, _ in self._subparser_name_to_description.items()])
+            visible_names = [name for name in self._subparser_name_to_description.keys()
+                             if name not in self._excluded_subparsers]
+            max_name_length = max([len(name) for name in visible_names]) if visible_names else 0
 
             # Print by group if any grouping is defined
             printed_parsers = set()
@@ -163,11 +169,11 @@ class BirdArgparser:
                 print('')
 
             # Print any remaining parsers
-            leftover_parsers = [name for name in self._subparser_name_to_description.keys() if name not in printed_parsers]
+            leftover_parsers = [name for name in visible_names if name not in printed_parsers]
             if len(leftover_parsers) > 0:
                 if len(self._groups_of_subparsers) > 0: print('Other commands:')
-                for name, description in self._subparser_name_to_description.items():
-                    if name in printed_parsers: continue
+                for name in leftover_parsers:
+                    description = self._subparser_name_to_description[name]
                     format_string = '  %-{}s  -> {}'.format(max_name_length+2, description)
                     print(format_string % name)
 
