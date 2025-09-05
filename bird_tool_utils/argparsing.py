@@ -107,7 +107,10 @@ class BirdArgparser:
         * parser_description: description of subcommand
 
         Optional:
-        * parser_group: str or None. Define grouping of subcommands [default: None]
+        * parser_group: str or None. Define grouping of subcommands. Use the
+          special value 'exclude' to hide the subcommand from the main help
+          output while still allowing it to be invoked directly
+          [default: None]
         * allow_no_args: allow subcommand execution with no further
           arguments, rather than printing help [default: False]
         '''
