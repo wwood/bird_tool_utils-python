@@ -24,6 +24,8 @@
 import unittest
 import os.path
 import sys
+import io
+import contextlib
 
 sys.path = [os.path.join(os.path.dirname(os.path.realpath(__file__)),'..')]+sys.path
 
@@ -57,6 +59,46 @@ class Tests(unittest.TestCase):
         try:
             with self.assertRaises(SystemExit):
                 parser.parse_the_args()
+        finally:
+            sys.argv = saved
+
+    def test_exclude_group_not_in_help(self):
+        saved = sys.argv
+        parser = BirdArgparser(program='TestProgram', program_invocation='testprog')
+        parser.new_subparser('hidden', 'hidden desc', parser_group='exclude')
+        parser.new_subparser('shown', 'shown desc')
+        sys.argv = ['testprog', '-h']
+        try:
+            buf = io.StringIO()
+            with contextlib.redirect_stdout(buf):
+                with self.assertRaises(SystemExit):
+                    parser.parse_the_args()
+            output = buf.getvalue()
+            self.assertNotIn('hidden', output)
+            self.assertIn('shown', output)
+        finally:
+            sys.argv = saved
+
+    def test_long_description_wraps(self):
+        saved = sys.argv
+        parser = BirdArgparser(program='TestProgram', program_invocation='testprog')
+        long_desc = ' '.join(['desc'] * 50)
+        parser.new_subparser('build', long_desc)
+        sys.argv = ['testprog', '-h']
+        try:
+            buf = io.StringIO()
+            with contextlib.redirect_stdout(buf):
+                with self.assertRaises(SystemExit):
+                    parser.parse_the_args()
+            output_lines = buf.getvalue().splitlines()
+            for i, line in enumerate(output_lines):
+                if line.strip().startswith('build'):
+                    desc_start = line.index('desc')
+                    self.assertLessEqual(len(line), 120)
+                    self.assertTrue(output_lines[i+1].startswith(' ' * desc_start))
+                    break
+            else:
+                self.fail('build subcommand not found in help output')
         finally:
             sys.argv = saved
         

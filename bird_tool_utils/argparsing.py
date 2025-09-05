@@ -95,6 +95,7 @@ class BirdArgparser:
         self._subparser_name_to_description = {}
         self._groups_of_subparsers = OrderedDict()
         self._subparsers_allow_no_args = set()
+        self._excluded_subparsers = set()
 
     def new_subparser(self, parser_name, parser_description, parser_group=None,
                       allow_no_args=False):
@@ -106,7 +107,10 @@ class BirdArgparser:
         * parser_description: description of subcommand
 
         Optional:
-        * parser_group: str or None. Define grouping of subcommands [default: None]
+        * parser_group: str or None. Define grouping of subcommands. Use the
+          special value 'exclude' to hide the subcommand from the main help
+          output while still allowing it to be invoked directly
+          [default: None]
         * allow_no_args: allow subcommand execution with no further
           arguments, rather than printing help [default: False]
         '''
@@ -121,9 +125,12 @@ class BirdArgparser:
         self._subparser_name_to_parser[parser_name] = subpar
         self._subparser_name_to_description[parser_name] = parser_description
         if parser_group is not None:
-            if parser_group not in self._groups_of_subparsers:
-                self._groups_of_subparsers[parser_group] = []
-            self._groups_of_subparsers[parser_group].append(parser_name)
+            if parser_group == 'exclude':
+                self._excluded_subparsers.add(parser_name)
+            else:
+                if parser_group not in self._groups_of_subparsers:
+                    self._groups_of_subparsers[parser_group] = []
+                self._groups_of_subparsers[parser_group].append(parser_name)
         if allow_no_args:
             self._subparsers_allow_no_args.add(parser_name)
         return subpar
@@ -150,26 +157,39 @@ class BirdArgparser:
             print('')
             print('                ...::: '+self.program+' v' + self.version + ' :::...''')
             print('')
-            max_name_length = max([len(name) for name, _ in self._subparser_name_to_description.items()])
+            visible_names = [name for name in self._subparser_name_to_description.keys()
+                             if name not in self._excluded_subparsers]
+            max_name_length = max([len(name) for name in visible_names]) if visible_names else 0
 
             # Print by group if any grouping is defined
             printed_parsers = set()
+
+            def _print_with_wrap(name, description):
+                prefix = f'  {name:<{max_name_length+2}}  -> '
+                line = prefix + description
+                if len(line) <= 120:
+                    print(line)
+                else:
+                    wrap_width = max(1, 120 - len(prefix))
+                    wrapped = textwrap.wrap(description, width=wrap_width)
+                    print(prefix + wrapped[0])
+                    for extra in wrapped[1:]:
+                        print(' ' * len(prefix) + extra)
+
             for group_name, parser_names in self._groups_of_subparsers.items():
                 print(group_name+':')
                 for parser_name in parser_names:
-                    format_string = '  %-{}s  -> {}'.format(max_name_length+2, self._subparser_name_to_description[parser_name])
-                    print(format_string % parser_name)
+                    _print_with_wrap(parser_name, self._subparser_name_to_description[parser_name])
                     printed_parsers.add(parser_name)
                 print('')
 
             # Print any remaining parsers
-            leftover_parsers = [name for name in self._subparser_name_to_description.keys() if name not in printed_parsers]
+            leftover_parsers = [name for name in visible_names if name not in printed_parsers]
             if len(leftover_parsers) > 0:
                 if len(self._groups_of_subparsers) > 0: print('Other commands:')
-                for name, description in self._subparser_name_to_description.items():
-                    if name in printed_parsers: continue
-                    format_string = '  %-{}s  -> {}'.format(max_name_length+2, description)
-                    print(format_string % name)
+                for name in leftover_parsers:
+                    description = self._subparser_name_to_description[name]
+                    _print_with_wrap(name, description)
 
             print('\n  Use '+self.program_invocation+' <command> -h for command-specific help.\n'\
                 '  Some commands also have an extended --full-help flag.\n')
