@@ -36,6 +36,7 @@ def build_dep_defs(
     pixi_lock_path: str | None = None,
     conda_to_pip_name: dict[str, str] | None = None,
     project_name: str | None = None,
+    environment: str | None = None,
     python_sections: list[str | list[str]] | None = None,
     nonpython_sections: list[str | list[str]] | None = None,
     mixed_sections: list[str | list[str]] | None = None,
@@ -52,6 +53,12 @@ def build_dep_defs(
             they diverge (e.g. {"bird_tool_utils_python": "bird_tool_utils"}).
         project_name: Conda/PyPI name of the project itself, excluded from
             requirements.txt. If None, reads workspace.name from pixi.toml.
+        environment: pixi environment to query for installed versions (e.g.
+            "dev"). When set, `pixi list` and `pixi run pip list` run against
+            this environment via --environment. Membership of the output is
+            still controlled by the *_sections whitelist, so dev-only tools do
+            not leak in — this only affects which env supplies the version
+            pins. If None, pixi's default environment is used.
         python_sections: pixi.toml sections containing only Python deps.
             Every package here must appear in `pip list` (or conda_to_pip_name).
         nonpython_sections: pixi.toml sections containing only non-Python deps.
@@ -71,8 +78,10 @@ def build_dep_defs(
     with open(pixi_toml_path, "rb") as f:
         pixi_data = tomllib.load(f)
 
+    env_flag = ["--environment", environment] if environment else []
+
     result = subprocess.run(
-        ["pixi", "list", "--json"],
+        ["pixi", "list", *env_flag, "--json"],
         capture_output=True, text=True, check=True,
     )
     pixi_list = {
@@ -83,7 +92,7 @@ def build_dep_defs(
     print(f"Found {len(pixi_list)} pixi packages.")
 
     result = subprocess.run(
-        ["pixi", "run", "pip", "list", "--format", "json"],
+        ["pixi", "run", *env_flag, "pip", "list", "--format", "json"],
         capture_output=True, text=True, check=True,
     )
     pip_list = sorted(json.loads(result.stdout), key=lambda x: x["name"].lower())
