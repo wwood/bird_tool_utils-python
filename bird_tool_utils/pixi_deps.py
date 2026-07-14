@@ -33,7 +33,6 @@ def build_dep_defs(
     pixi_toml_path: str,
     environment_yml_path: str,
     requirements_txt_path: str,
-    pixi_lock_path: str | None = None,
     conda_to_pip_name: dict[str, str] | None = None,
     project_name: str | None = None,
     environment: str | None = None,
@@ -47,8 +46,6 @@ def build_dep_defs(
         pixi_toml_path: Path to the pixi.toml to read.
         environment_yml_path: Output path for environment.yml.
         requirements_txt_path: Output path for requirements.txt.
-        pixi_lock_path: Optional path to pixi.lock. Loaded and available for
-            future validation against pinned versions; not currently used.
         conda_to_pip_name: Mapping of conda package names to PyPI names where
             they diverge (e.g. {"bird_tool_utils_python": "bird_tool_utils"}).
         project_name: Conda/PyPI name of the project itself, excluded from
@@ -70,10 +67,6 @@ def build_dep_defs(
     python_sections = python_sections or []
     nonpython_sections = nonpython_sections or []
     mixed_sections = mixed_sections if mixed_sections is not None else DEFAULT_MIXED_SECTIONS
-
-    if pixi_lock_path is not None:
-        with open(pixi_lock_path, "rb") as f:
-            _lock_data = yaml.safe_load(f)
 
     with open(pixi_toml_path, "rb") as f:
         pixi_data = tomllib.load(f)
@@ -121,7 +114,7 @@ def build_dep_defs(
     for conda_name in python_conda:
         if conda_name == "python":
             continue
-        pip_name = conda_to_pip_name.get(conda_name, conda_name)
+        pip_name = conda_to_pip_name.get(conda_name, conda_name).lower()
         if pip_name not in pip_names:
             raise ValueError(
                 f"Conda package {conda_name!r} (python section) not in `pip list` as {pip_name!r}. "
@@ -129,7 +122,7 @@ def build_dep_defs(
             )
         required_pip_names.add(pip_name)
 
-    mixed_pip_names = {conda_to_pip_name.get(p, p) for p in mixed_conda}
+    mixed_pip_names = {conda_to_pip_name.get(p, p).lower() for p in mixed_conda}
     declared_pip = required_pip_names | mixed_pip_names
 
     if project_name is None:
