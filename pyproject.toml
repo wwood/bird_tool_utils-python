@@ -26,6 +26,9 @@ dynamic = ["version"]
 [project.urls]
 Homepage = "https://github.com/wwood/bird_tool_utils-python/"
 
+[project.scripts]
+bird-release-python = "bird_tool_utils.release:main"
+
 [tool.setuptools]
 packages = ["bird_tool_utils"]
 

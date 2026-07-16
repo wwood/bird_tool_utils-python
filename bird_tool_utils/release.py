@@ -13,8 +13,9 @@ these Python packages actually release:
   - release stops at commit+tag; GitHub Actions builds and publishes to PyPI
     after `git push --tags` (no local `twine`/`build` step here)
 
-Run from the repository root, e.g.:
-    python3 scripts/release_python.py --version 0.21.4
+Exposed as the `bird-release-python` console script (see [project.scripts] in
+pyproject.toml). Run from the target package's own repository root, e.g.:
+    cd ~/singlem-myversion && pixi run -e dev bird-release-python --version 0.21.4
 """
 
 import argparse
@@ -84,29 +85,47 @@ def changelog_contains_version(version: str, path: Path) -> bool:
 
 
 def confirm_changelog(version: str, path: Path) -> None:
-    if not path.exists():
-        print(f"No {path} found in this repo; skipping changelog check.")
-        return
-
-    if changelog_contains_version(version, path):
+    if path.exists() and changelog_contains_version(version, path):
         print(f"{path} already contains a section for v{version}.")
-        return
+    elif path.exists():
+        print(f"{path} does not obviously contain a section for v{version}.")
+    else:
+        print(f"No {path} found in this repo.")
 
-    print(f"{path} does not obviously contain a section for v{version}.")
+    # Asked every time, regardless of the auto-detection above, since there's
+    # no way to auto-check whether SKILL.md.in/docs actually reflect this
+    # release's changes.
     while True:
         answer = input(
-            f"Has {path} been updated with a '## v{version}' section for this release? [y/n] "
+            f"Has {path} been updated with a '## v{version}' section, and is "
+            "SKILL.md.in (and other documentation) up to date for this "
+            "release? [y/n] "
         ).strip().lower()
         if answer in {"y", "yes"}:
             return
         if answer in {"n", "no"}:
-            die(f"update {path} first, then rerun this script")
+            die(f"update {path} and SKILL.md.in/docs first, then rerun this script")
+
+
+def run_default_tests(pixi_env: str) -> None:
+    # The same fast, non-expensive tier CI already runs on every commit (no
+    # --run-expensive/--run-qsub/--run-download) -- a real, automatic sanity
+    # check, not a trust-based prompt. Runs in under a couple of minutes for
+    # both singlem and aviary, so it's cheap enough to always run here.
+    print("Running default (non-expensive) test suite...")
+    try:
+        run(["pixi", "run", "-e", pixi_env, "pytest", "-v"])
+    except subprocess.CalledProcessError:
+        die("default test suite failed; fix the failures, then rerun this script")
 
 
 def confirm_tests_run() -> None:
     answer = input(
-        "Have you run the full/expensive test suite for this release "
-        "(not just what CI runs on every commit)? [y/n] "
+        "Have you also run the full/expensive test suite for this release "
+        "(e.g. `pytest --run-expensive`/`--run-qsub`; this is separate from "
+        "the default suite just run automatically above, and can't be run "
+        "inline here since it takes hours -- database-download tests behind "
+        "`--run-download` are a separate concern and not required here)? [y/n] "
     ).strip().lower()
     if answer not in {"y", "yes"}:
         die("run the full test suite first, then rerun this script")
@@ -152,9 +171,14 @@ def main() -> None:
         "--skip-changelog-check", action="store_true", help="Skip the CHANGELOG.md confirmation"
     )
     parser.add_argument(
+        "--skip-tests",
+        action="store_true",
+        help="Skip actually running the default (non-expensive) pytest suite",
+    )
+    parser.add_argument(
         "--skip-tests-confirmation",
         action="store_true",
-        help="Skip the 'have you run the full test suite' prompt",
+        help="Skip the 'have you run the full/expensive test suite' prompt",
     )
     parser.add_argument(
         "--skip-dep-defs",
@@ -180,6 +204,9 @@ def main() -> None:
     if existing_tags:
         die(f"git tag {tag!r} already exists")
 
+    if not args.skip_tests:
+        run_default_tests(args.pixi_env)
+
     if not args.skip_tests_confirmation:
         confirm_tests_run()
 
@@ -197,14 +224,20 @@ def main() -> None:
             Path("admin/build_docs.py"), ["--version", version], pixi_env=args.pixi_env
         )
 
-    # Docs/dep-def generation may have touched files; re-check before tagging,
-    # same guard singlem's existing release script uses.
+    # Docs/dep-def generation may have touched files unexpectedly; hard-abort
+    # before tagging if so, same guard singlem's original release script used
+    # (it ran a plain `exit 1` here). version_file itself is expected to
+    # change next via write_version_files(), so that alone is fine.
     if not args.allow_dirty:
         status = capture(["git", "status", "--porcelain"])
         if status and status.strip() != f" M {version_file}":
-            print("Working tree changed by the steps above:")
+            print("Working tree changed unexpectedly by the steps above:")
             print(status)
-            # version_file itself is expected to change next; anything else is not.
+            die(
+                f"repo is not clean after dep-defs/docs generation; if a tag "
+                f"{tag!r} was already created, remove it with `git tag -d {tag}` "
+                "before investigating and rerunning"
+            )
 
     write_version_files(version, args.pixi_env)
 
@@ -223,8 +256,13 @@ def main() -> None:
     print("Now run:")
     print("  git push && git push --tags")
     print("GitHub Actions will then build and upload to PyPI.")
+    if Path("docker/build.sh").exists():
+        print("REMINDER: Don't forget to build and push the Docker image!")
+        print("  Once the tag is on GitHub, run: pixi run bash docker/build.sh")
+    print("REMINDER: Don't forget to update and do a release on GitHub!")
     print("Once on PyPI, also update the bioconda recipe / submit a PR to bioconda-recipes,")
-    print("and verify deployment via any downstream installation-check repo if one exists.")
+    print("and verify deployment via any downstream installation-check repo if one exists")
+    print("(e.g. aviary-installation / singlem-installation).")
 
 
 if __name__ == "__main__":
