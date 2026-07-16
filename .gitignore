@@ -7,3 +7,8 @@ build
 MANIFEST
 dist/
 man/
+
+# pixi environments. Note that with `detached-environments = true` pixi makes
+# .pixi/envs an absolute symlink into the local pixi cache, which is useless to
+# anyone else and breaks CI's `pixi install` with EEXIST on a dangling link.
+.pixi/
