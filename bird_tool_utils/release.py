@@ -92,19 +92,23 @@ def confirm_changelog(version: str, path: Path) -> None:
     else:
         print(f"No {path} found in this repo.")
 
-    # Asked every time, regardless of the auto-detection above, since there's
-    # no way to auto-check whether SKILL.md.in/docs actually reflect this
-    # release's changes.
+    # Asked every time, regardless of the detection above: a heading can exist
+    # while saying nothing about this release's actual changes.
+    #
+    # Only the changelog is asked about here. Documentation questions are
+    # package-specific (singlem cares about SKILL.md.in, aviary does not) and
+    # belong in that package's [tool.bird_release].confirmations, not baked
+    # into the shared script where every tool inherits every other tool's
+    # conventions.
     while True:
         answer = input(
-            f"Has {path} been updated with a '## v{version}' section, and is "
-            "SKILL.md.in (and other documentation) up to date for this "
-            "release? [y/n] "
+            f"Has {path} been updated with a '## v{version}' section "
+            "describing this release? [y/n] "
         ).strip().lower()
         if answer in {"y", "yes"}:
             return
         if answer in {"n", "no"}:
-            die(f"update {path} and SKILL.md.in/docs first, then rerun this script")
+            die(f"update {path} first, then rerun this script")
 
 
 def run_default_tests(pixi_env: str) -> None:
@@ -131,11 +135,67 @@ def confirm_tests_run() -> None:
         die("run the full test suite first, then rerun this script")
 
 
-def run_if_present(script: Path, args: list, *, pixi_env: str) -> None:
-    if not script.exists():
+def load_release_config(pyproject: Path) -> dict:
+    """Read the target package's [tool.bird_release] block, if any.
+
+    Absent is allowed -- a package may genuinely have no per-release steps --
+    but it is REPORTED rather than silently assumed, so "declared nothing" and
+    "forgot to declare" don't look identical in the output.
+    """
+    data = tomllib.loads(pyproject.read_text())
+    config = data.get("tool", {}).get("bird_release")
+    if config is None:
+        print(
+            f"No [tool.bird_release] in {pyproject}: no per-package steps, "
+            "confirmations or reminders will run."
+        )
+        return {}
+    return config
+
+
+def run_declared_steps(steps: list, version: str, *, pixi_env: str) -> None:
+    """Run each declared step, failing hard if its script is missing.
+
+    Deliberately NOT filesystem autodetection. An earlier draft globbed for
+    well-known paths (admin/build_dep_defs_from_pixi.py, admin/build_docs.py)
+    and skipped whatever was absent, which meant a renamed or mistyped script
+    silently stopped running at release time while the tag shipped anyway --
+    "skipped" and "nothing to do" printed the same nothing. singlem's original
+    per-tool release script ran its steps unconditionally and died if one was
+    missing; declaring them here keeps that failure mode while still letting
+    each package own its own list.
+
+    Each entry is a command string relative to the repo root, with {version}
+    substituted, e.g. "admin/build_docs.py --version {version}".
+    """
+    if not steps:
+        print("No [tool.bird_release] steps declared.")
         return
-    print(f"Running {script}")
-    run(["pixi", "run", "-e", pixi_env, "python3", str(script), *args])
+    for step in steps:
+        parts = step.format(version=version).split()
+        script = Path(parts[0])
+        if not script.exists():
+            die(
+                f"declared release step {parts[0]!r} does not exist. Fix the path "
+                "in [tool.bird_release].steps, or remove the step if it no longer "
+                "applies -- it is not skipped automatically."
+            )
+        print(f"Running declared step: {step}")
+        run(["pixi", "run", "-e", pixi_env, "python3", *parts])
+
+
+def confirm_declared(confirmations: list) -> None:
+    """Ask each package-declared yes/no question; anything but yes aborts.
+
+    These are the per-tool equivalents of singlem's hardcoded "Did you check
+    SKILL.md.in is up to date?" -- questions only that package's maintainers
+    can write, so they live in that package's pyproject.toml rather than in
+    this shared script.
+    """
+    for question in confirmations:
+        answer = input(f"{question} [y/n] ").strip().lower()
+        if answer not in {"y", "yes"}:
+            die(f"answered no to: {question}")
 
 
 def write_version_files(version: str, pixi_env: str) -> None:
@@ -181,14 +241,9 @@ def main() -> None:
         help="Skip the 'have you run the full/expensive test suite' prompt",
     )
     parser.add_argument(
-        "--skip-dep-defs",
+        "--skip-steps",
         action="store_true",
-        help="Skip admin/build_dep_defs_from_pixi.py even if present",
-    )
-    parser.add_argument(
-        "--skip-docs",
-        action="store_true",
-        help="Skip admin/build_docs.py even if present",
+        help="Skip the [tool.bird_release].steps declared by this package",
     )
     args = parser.parse_args()
 
@@ -216,12 +271,13 @@ def main() -> None:
     version_file = get_version_file(Path("pyproject.toml"))
     print(f"Version file (from pyproject.toml): {version_file}")
 
-    if not args.skip_dep_defs:
-        run_if_present(Path("admin/build_dep_defs_from_pixi.py"), [], pixi_env=args.pixi_env)
+    release_config = load_release_config(Path("pyproject.toml"))
 
-    if not args.skip_docs:
-        run_if_present(
-            Path("admin/build_docs.py"), ["--version", version], pixi_env=args.pixi_env
+    confirm_declared(release_config.get("confirmations", []))
+
+    if not args.skip_steps:
+        run_declared_steps(
+            release_config.get("steps", []), version, pixi_env=args.pixi_env
         )
 
     # Docs/dep-def generation may have touched files unexpectedly; hard-abort
@@ -256,13 +312,16 @@ def main() -> None:
     print("Now run:")
     print("  git push && git push --tags")
     print("GitHub Actions will then build and upload to PyPI.")
-    if Path("docker/build.sh").exists():
-        print("REMINDER: Don't forget to build and push the Docker image!")
-        print("  Once the tag is on GitHub, run: pixi run bash docker/build.sh")
     print("REMINDER: Don't forget to update and do a release on GitHub!")
-    print("Once on PyPI, also update the bioconda recipe / submit a PR to bioconda-recipes,")
-    print("and verify deployment via any downstream installation-check repo if one exists")
-    print("(e.g. aviary-installation / singlem-installation).")
+
+    # Everything beyond the two universal reminders above is package-specific
+    # (does this tool ship a Docker image? does it have a bioconda recipe? is
+    # there an installation-check repo?) and is declared by the package rather
+    # than guessed at from the filesystem here. Previously this block named
+    # aviary and singlem directly, so every tool using this script inherited
+    # every other tool's post-release steps as noise.
+    for reminder in release_config.get("reminders", []):
+        print(f"REMINDER: {reminder.format(version=version)}")
 
 
 if __name__ == "__main__":
