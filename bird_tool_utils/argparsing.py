@@ -1,4 +1,5 @@
 import os
+import shutil
 import argparse
 import sys
 import logging
@@ -231,7 +232,10 @@ class BirdArgparser:
 
     def _print_short_help(self, subcommand):
         if subcommand in self.examples:
-            width = os.get_terminal_size().columns
+            # shutil.get_terminal_size falls back to the COLUMNS env var or an
+            # (80, 24) default when stdout is not a terminal e.g. under CI or
+            # when output is piped, instead of raising OSError.
+            width = shutil.get_terminal_size().columns
             if width > 100:
                 width = 100
             print(_bcolors.OKGREEN)
