@@ -1,0 +1,36 @@
+# Merge into the target package's pyproject.toml.
+#
+# [build-system] must list setuptools_scm, and `version` must be dynamic:
+#   [build-system]
+#   requires = ["setuptools>=64", "wheel", "setuptools_scm"]
+#   build-backend = "setuptools.build_meta"
+#   [project]
+#   dynamic = ["version"]
+
+# bird-release-python reads version_file from here and exits if the section is
+# absent. The version comes from the git tag; never hand-edit it.
+[tool.setuptools_scm]
+version_file = "PACKAGE/version.py"
+version_scheme = "only-version"
+local_scheme = "no-local-version"
+
+# Everything tool-specific about releasing this package is declared HERE, not
+# detected by the shared script. Nothing runs that is not listed, and a step
+# whose file is missing is a hard error (it is never silently skipped).
+[tool.bird_release]
+# Run in order from the repo root via `pixi run -e dev python3 <step>`.
+# {version} is substituted. Use [] if the package has none -- and say why.
+steps = [
+    # "admin/build_dep_defs_from_pixi.py",
+    # "admin/build_docs.py --version {version}",
+]
+# Yes/no questions asked before anything is built. Answering no aborts.
+confirmations = [
+    # "Is docs/SKILL.md up to date for this release?",
+]
+# Printed after commit+tag, after the two universal reminders (push, GitHub
+# release). {version} is substituted.
+reminders = [
+    # "Build and push the Docker image: pixi run bash docker/build.sh",
+    # "Update the bioconda recipe",
+]
